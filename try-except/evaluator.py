@@ -158,6 +158,34 @@ def ast_to_string(ast):
         else:
             return "return"
 
+    # Added for try-except
+    if ast["tag"] == "try":
+        s = (
+            "try {"
+            + ast_to_string(ast["statements"])
+            + "}"
+        )
+
+    if ast["tag"] == "except":
+        s = "except ("
+        item = []
+
+        if "catch_all_except":
+            s = s + "catch_all_except" + ast_to_string(ast["statement_list"])
+        else:
+            for expr in ast["expressions"]:
+                item.append(ast_to_string(expr))
+
+            s = s + ", ".join(item)
+
+        s = s + ") {" + ast_to_string(ast["body"]) + "}"
+        return s
+        
+
+    if ast["tag"] == "raise":
+        item = []
+        return "raise " + item.append(parse_arithmetic_expression())
+
     # Add missing AST node types for ast_to_string completeness
     if ast["tag"] == "exit":
         if "value" in ast and ast["value"] is not None:
@@ -492,6 +520,23 @@ def evaluate(ast, environment):
                 return condition_value, "exit"
         return None, None  # Normal loop termination (condition false or break occurred)
 
+    # Try-except
+    if ast["tag"] == "try":
+        return evaluate(ast["statements"], environment)
+
+    if ast["tag"] == "except":
+        # if "_exception" not in environment:
+        #     return None, None  # nothing to catch
+
+        # err = environment.pop("_exception")
+
+        # catch-all
+        if ast.get("catch_all"):
+            return evaluate(ast["body"], environment)
+
+        # normal except (no filtering yet)
+        return evaluate(ast["body"], environment)
+    
     if ast["tag"] == "statement_list":
         last_value = None
         for statement in ast["statements"]:
@@ -737,6 +782,16 @@ def test_evaluate_single_value():
     equals("x", {"x": "cat", "y": 2}, "cat")
     equals("null", {}, None)
 
+# Test the try-except evaluators
+def test_evaluate_try():
+    print("test evaluate try")
+    equals("try {1+1}", {}, 2, {})
+    equals("try { x=1; x+2 }", {}, 3, {"x": 1})
+
+def test_evaluate_except():
+    print("test evaluate except")
+    equals("try { print 1/0 } except (e) { print 42 }", {}, 42, {})
+# def test_evaluate_raise()
 
 def test_evaluate_addition():
     print("test evaluate addition")
@@ -1245,6 +1300,9 @@ if __name__ == "__main__":
     test_evaluate_object_literal()
     test_evaluate_builtins()
     test_evaluator_with_new_tags()
+    test_evaluate_try()
+    test_evaluate_except()
+    # test_evaluate_raise()
     test_scoping()
     test_closures()
     test_control_flow_scoping_rules()
