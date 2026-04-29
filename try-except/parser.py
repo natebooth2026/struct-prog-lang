@@ -38,9 +38,9 @@ grammar = """
 
     program = [ statement { ";" statement } {";"} ]
 
-    try = "try" statement_list 
+    try = "try" "{" statement_list "}" 
     raise = "raise" arithmetic_expression
-    except = "except" "(" (arithmetic_expression { "," arithmetic_expression }) | "catch_all_except" ")" statement_list
+    except = "except" "(" (arithmetic_expression { "," arithmetic_expression }) | "catch_all_except" ")" "{" statement_list "}"
     """
 
 
@@ -1414,9 +1414,7 @@ def parse_try_statement(tokens):
     """
     assert tokens[0]["tag"] == "try", f"Expected 'try', got {tokens[0]}"
     tokens = tokens[1:]
-    assert tokens[0]["tag"] == "statement_list", f"Expected statement list, got {tokens[0]}"
     statements, tokens = parse_statement_list(tokens) 
-    tokens = tokens[1:]
     return {"tag": "try", "statements": statements}, tokens
 
 def parse_raise_statement(tokens):
@@ -1425,9 +1423,7 @@ def parse_raise_statement(tokens):
     """
     assert tokens[0]["tag"] == "raise", f"Expected 'raise', got {tokens[0]}"
     tokens = tokens[1:]
-    assert tokens[0]["tag"] == "arithmetic_expression", f"Expected arithmetic expression, got {tokens[0]}"
     expression, tokens = parse_arithmetic_expression(tokens)
-    tokens = tokens[1:]
     return {"tag": "raise", "ID": expression}, tokens
 
 def parse_except_statement(tokens):
@@ -1438,26 +1434,23 @@ def parse_except_statement(tokens):
     tokens = tokens[1:]
     assert tokens[0]["tag"] == "(", f"Expected '(', got {tokens[0]}"
     tokens = tokens[1:]
-    assert (tokens[0]["tag"] == "arithmetic_expression" or tokens[0]["tag"] == "catch_all_except"), f"Expected arithmetic expression(s) or catch all exception modifier, got {tokens[0]}"
     catching_all = False
     exceptionIDs = []
-    if tokens[0]["tag"] == "arithmetic_expression":
+    if tokens[0]["tag"] == "catch_all_except":
+        catching_all = True
+        tokens = tokens[1:]
+    else:
         while tokens[0]["tag"] != ")":
-            assert tokens[0]["tag"] == arithmetic_expression, f"Expected arithmetic expression: got {tokens[0]["tag"]}"
             exceptID, tokens = parse_arithmetic_expression(tokens)
             exceptionIDs.append(exceptID)
-            tokens = tokens[1:]
             if tokens[0]["tag"] != ",":
                 assert tokens[0]["tag"] == ")", f"Expected ')', got {tokens[0]}"
                 break
-    else:
-        catching_all = True
-        tokens = tokens[1:]
+            else:
+                tokens = tokens[1:]
     assert tokens[0]["tag"] == ")", f"Expected ')', got {tokens[0]}"
     tokens = tokens[1:]
-    assert tokens[0]["tag"] == "statement_list", f"Expected statement list, got {tokens[0]}"
     statements, tokens = parse_statement_list(tokens)
-    tokens = tokens[1:]
     return {"tag":"except", "IDs": exceptionIDs, "statements": statements}, tokens
 
 
@@ -1536,8 +1529,8 @@ def test_parse_statement():
 
     #raise statement
     assert (
-        parse_statement(tokenize("raise exception"))[0]
-        == parse_raise_statement(tokenize("raise exception"))[0]
+        parse_statement(tokenize("raise 1"))[0]
+        == parse_raise_statement(tokenize("raise 1"))[0]
     )
 
     #except statement
@@ -1556,7 +1549,7 @@ def test_parse_try_statement():
 
     assert ast == {
         "tag": "try",
-        "statements": parse_statement_list(tokenize("print 1}"))[0]
+        "statements": parse_statement_list(tokenize("{print 1}"))[0]
     }
 def test_parse_raise_statement():
     """
@@ -1573,7 +1566,7 @@ def test_parse_raise_statement():
 
 def test_parse_except_statement():
     """
-    except = "except" "(" arithmetic_expression ")" "{" statement_list "}"
+    except = "except" "(" (arithmetic_expression { "," arithmetic_expression }) | "catch_all_except" ")" "{" statement_list "}"
     """
     print("testing parse_except_statement...")
 
@@ -1582,7 +1575,7 @@ def test_parse_except_statement():
     assert ast == {
         "tag": "except",
         "IDs": [parse_arithmetic_expression(tokenize("1"))[0]],
-        "statements": parse_statement_list(tokenize("print 1}"))[0]
+        "statements": parse_statement_list(tokenize("{print 1}"))[0]
     }
 
 def parse_program(tokens):
