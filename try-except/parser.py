@@ -1451,7 +1451,7 @@ def parse_except_statement(tokens):
     assert tokens[0]["tag"] == ")", f"Expected ')', got {tokens[0]}"
     tokens = tokens[1:]
     statements, tokens = parse_statement_list(tokens)
-    return {"tag":"except", "IDs": exceptionIDs, "statements": statements}, tokens
+    return {"tag":"except", "IDs": exceptionIDs, "catch_all": catching_all, "statements": statements}, tokens
 
 
 def parse_statement(tokens):
@@ -1575,6 +1575,15 @@ def test_parse_except_statement():
     assert ast == {
         "tag": "except",
         "IDs": [parse_arithmetic_expression(tokenize("1"))[0]],
+        "catch_all": False,
+        "statements": parse_statement_list(tokenize("{print 1}"))[0]
+    }
+
+    ast = parse_except_statement(tokenize("except(catch_all_except){print 1}"))[0]
+    assert ast == {
+        "tag": "except",
+        "IDs": [],
+        "catch_all": True,
         "statements": parse_statement_list(tokenize("{print 1}"))[0]
     }
 
