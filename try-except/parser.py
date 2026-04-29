@@ -1498,7 +1498,7 @@ def parse_statement(tokens):
 
 def test_parse_statement():
     """
-    statement = if_statement | while_statement | function_statement | return_statement | print_statement | exit_statement | import_statement | break_statement | continue_statement | assert_statement | expression
+    statement = if_statement | while_statement | function_statement | return_statement | print_statement | exit_statement | import_statement | break_statement | continue_statement | assert_statement | try | raise | except | expression
     """
     print("testing parse_statement...")
 
@@ -1528,6 +1528,62 @@ def test_parse_statement():
         == parse_function_statement(tokenize("function x(y){2}"))[0]
     )
 
+    #try statement 
+    assert (
+        parse_statement(tokenize("try{print 1}"))[0]
+        == parse_try_statement(tokenize("try{print 1}"))[0]
+    )
+
+    #raise statement
+    assert (
+        parse_statement(tokenize("raise exception"))[0]
+        == parse_raise_statement(tokenize("raise exception"))[0]
+    )
+
+    #except statement
+    assert (
+        parse_statement(tokenize("except(1){print 1}"))[0]
+        == parse_except_statement(tokenize("except(1){print 1}"))[0]
+    )
+
+def test_parse_try_statement():
+    """
+    try = "try" "{" statement_list "}"
+    """
+    print("testing parse_try_statement...")
+
+    ast = parse_try_statement(tokenize("try{print 1}"))[0]
+
+    assert ast == {
+        "tag": "try",
+        "statements": parse_statement_list(tokenize("print 1}"))[0]
+    }
+def test_parse_raise_statement():
+    """
+    raise = "raise" arithmetic_expression
+    """
+    print("testing parse_raise_statement...")
+
+    ast = parse_raise_statement(tokenize("raise 1"))[0]
+
+    assert ast == {
+        "tag": "raise",
+        "ID": parse_arithmetic_expression(tokenize("1"))[0]
+    }
+
+def test_parse_except_statement():
+    """
+    except = "except" "(" arithmetic_expression ")" "{" statement_list "}"
+    """
+    print("testing parse_except_statement...")
+
+    ast = parse_except_statement(tokenize("except(1){print 1}"))[0]
+
+    assert ast == {
+        "tag": "except",
+        "IDs": [parse_arithmetic_expression(tokenize("1"))[0]],
+        "statements": parse_statement_list(tokenize("print 1}"))[0]
+    }
 
 def parse_program(tokens):
     """
@@ -1680,10 +1736,18 @@ if __name__ == "__main__":
         test_parse_assert_statement,
         test_parse_statement,
         test_parse_program,
+        test_parse_simple_expression
+        # test_parse_try_statement,
+        # test_parse_raise_statement,
+        # test_parse_except_statement
     ]
 
     test_functions = [
-        test_parse_simple_expression,
+        test_parse_statement,
+        test_parse_program,
+        test_parse_try_statement,
+        test_parse_raise_statement,
+        test_parse_except_statement
     ]
     test_grammar = grammar
 
