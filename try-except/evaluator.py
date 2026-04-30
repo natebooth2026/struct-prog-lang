@@ -522,7 +522,12 @@ def evaluate(ast, environment):
 
     # Try-except
     if ast["tag"] == "try":
-        return evaluate(ast["statements"], environment)
+        try:
+            return evaluate(ast["statements"], environment)
+        except Exception as e:
+            return str(e).split(": ")[1], "except" #maybe store in environment as __EXCEPTION__
+        else:
+            return None, None
 
     if ast["tag"] == "except":
         # if "_exception" not in environment:
@@ -536,6 +541,8 @@ def evaluate(ast, environment):
 
         # normal except (no filtering yet)
         return evaluate(ast["body"], environment)
+
+        #if no match, raise the exception
     
     if ast["tag"] == "statement_list":
         last_value = None
@@ -790,7 +797,7 @@ def test_evaluate_try():
 
 def test_evaluate_except():
     print("test evaluate except")
-    equals("try { print 1/0 } except (e) { print 42 }", {}, 42, {})
+    equals("try { print 1/0 }; except (e) { print 42 }", {}, 42, {})
 # def test_evaluate_raise()
 
 def test_evaluate_addition():
