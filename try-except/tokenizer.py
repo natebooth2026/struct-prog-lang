@@ -23,6 +23,7 @@ patterns = [
     [r"raise", "raise"], # raise keyword
     [r"except", "except"], # except keyword
     [r"catch_all_except", "catch_all_except"], # exception catch all keyword
+    [r"_exception", "_exception"], # special exception identifier
     [r"and", "&&"],  # alternate for &&
     [r"or", "||"],  # alternate for ||
     [r"not", "!"],  # alternate for !
@@ -280,6 +281,7 @@ def test_keywords():
         "try",      # exception handling
         "raise",    # exception handling
         "except",   # exception handling
+        "_exception", # exception handling
         "catch_all_except", # exception handling
         "exit",
     ]:
