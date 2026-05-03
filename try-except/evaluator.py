@@ -554,6 +554,11 @@ def evaluate(ast, environment):
                         raise Exception(f"'{status}' statement outside of loop.")
                     return val, status  # Propagate "exit"
                 last_value = val
+            if "_exception" in environment:
+                if type(environment["_exception"]) == type(0):
+                    raise Exception(f"Unhandled custom exception detected: \"{environment["_exception"]}\"")
+                else:
+                    raise Exception(f"Unhandled exception detected: \"{environment["_exception"]}\"")
             return last_value, None  # Program completed normally
 
         if ast["tag"] == "function":
@@ -809,11 +814,13 @@ def test_evaluate_try():
 def test_evaluate_except():
     print("test evaluate except")
     equals("try { 1/0 }; except (catch_all_except) { 42 }", {}, 42, {})
+    # equals("try { 1/0 };", {}, None, {"_exception": "Error : Division by zero"}) # WILL CAUSE "UNHANDLED EXCEPTION" PYTHON EXCEPTION (see evaluation of program)
 
 def test_evaluate_raise():
     print("test evaluate raise")
-    equals("raise 1", {}, None, {"_exception": 1})
+    equals("raise 1; except(1) { }", {}, None, {})
     equals("try { raise 1 }; print \"SHOULDN'T MAKE IT HERE\"; except (1, 2) { 42 }", {}, 42)
+    # equals("try { raise 1 };", {}, None, {"_exception": 1}) # WILL CAUSE "UNHANDLED CUSTOM EXCEPTION" PYTHON EXCEPTION (see evaluation of program)
 
 # Ends here
 
