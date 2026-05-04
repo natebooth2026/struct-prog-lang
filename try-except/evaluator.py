@@ -235,9 +235,9 @@ def evaluate_builtin_function(function_name, args):
 
     assert False, f"Unknown builtin function '{function_name}'"
 
-
 def evaluate(ast, environment):
     if "_exception" not in environment:
+        global err # this allows for access to _exception after it is cleared by except handler
         if ast["tag"] == "number":
             assert type(ast["value"]) in [
                 float,
@@ -463,9 +463,8 @@ def evaluate(ast, environment):
             return "\n", None  # Print with no args returns a newline string
         
         if ast["tag"] == "_exception":
-            # If "_exception" in environment
-            if "_exception" in environment:
-                return environment["_exception"]
+            if err != None:
+                return str(err), None
             return None, None
 
         if ast["tag"] == "assert":
@@ -739,28 +738,29 @@ def evaluate(ast, environment):
                 raise Exception(f"ImportError: File not found '{filename_val}'")
             except Exception as e:
                 raise Exception(f"Error during import of '{filename_val}': {e}")
-            
-        assert False, f"Unknown tag [{ast['tag']}] in AST"
+        
+        assert ast["tag"] == "except", f"Unknown tag [{ast['tag']}] in AST"
+        return None, None
+    else:
+        if ast["tag"] == "except":
+            # if there is nothing
+            if "_exception" not in environment:
+                return None, None  # nothing to catch
 
-    if ast["tag"] == "except":
-        # if there is nothing
-        if "_exception" not in environment:
-            return None, None  # nothing to catch
+            err = environment.pop("_exception") #clear it
 
-        err = environment.pop("_exception") #clear it
-
-        # convert each ID's AST into number
-        for id in range(len(ast["IDs"])):
-            if "tag" in ast["IDs"][id]:
-                ast["IDs"][id] = ast["IDs"][id]["value"]
-            
-        # catch-all or in IDs
-        if ast.get("catch_all") or (err in ast["IDs"]):
-            return evaluate(ast["statements"], environment)
+            # convert each ID's AST into number
+            for id in range(len(ast["IDs"])):
+                if "tag" in ast["IDs"][id]:
+                    ast["IDs"][id] = ast["IDs"][id]["value"]
+                
+            # catch-all or in IDs
+            if ast.get("catch_all") or (err in ast["IDs"]):
+                return evaluate(ast["statements"], environment)
+            else:
+                return None, None
         else:
             return None, None
-    else:
-        return None, None
         
 def clean(e):
     if type(e) is dict:
@@ -822,6 +822,8 @@ def test_evaluate_except():
     print("test evaluate except")
     equals("try { 1/0 }; except (catch_all_except) { 42 }", {}, 42, {})
     # equals("try { 1/0 };", {}, None, {"_exception": "Error : Division by zero"}) # WILL CAUSE "UNHANDLED EXCEPTION" PYTHON EXCEPTION (see evaluation of program)
+    equals("try { 1/0 }; print _exception; except (catch_all_except) { print \"Exception caught: \" + _exception; }", {}, "Exception caught: Error : Division by zero\n", {})
+    equals("try { raise 1; }; except (1) { print \"Exception caught: \" + _exception; }; except (catch_all_except) { print \"I SHOULD NOT PRINT\"; }", {}, None, {})
 
 def test_evaluate_raise():
     print("test evaluate raise")
