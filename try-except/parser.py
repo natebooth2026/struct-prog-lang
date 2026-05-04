@@ -2,7 +2,7 @@ from tokenizer import tokenize
 from pprint import pprint
 
 grammar = """
-    simple_expression = identifier | <boolean> | <number> | <string> | <null> | list | object | ("-" simple_expression) | ("!" simple_expression) | function | ( "(" expression ")" )
+    simple_expression = identifier | "_exception" | <boolean> | <number> | <string> | <null> | list | object | ("-" simple_expression) | ("!" simple_expression) | function | ( "(" expression ")" )
 
     list = "[" expression { "," expression } "]"
     object = "{" [ expression ":" expression { "," expression ":" expression } ] "}"
@@ -49,13 +49,16 @@ grammar = """
 
 def parse_simple_expression(tokens):
     """
-    simple_expression = identifier | <boolean> | <number> | <string> | <null> | list | object | ("-" simple_expression) | ("!" simple_expression) | function | ( "(" expression ")" )
+    simple_expression = identifier | "_exception" | <boolean> | <number> | <string> | <null> | list | object | ("-" simple_expression) | ("!" simple_expression) | function | ( "(" expression ")" )
     """
 
     token = tokens[0]
 
     if token["tag"] in {"identifier", "boolean", "number", "string"}:
         return {"tag": token["tag"], "value": token["value"]}, tokens[1:]
+
+    if token["tag"] == "_exception":
+        return {"tag": token["tag"]}, tokens[1:]
 
     if token["tag"] == "null":
         return {"tag": "null"}, tokens[1:]
@@ -89,7 +92,7 @@ def parse_simple_expression(tokens):
 
 def test_parse_simple_expression():
     """
-    simple_expression = identifier | <boolean> | <number> | <string> | <null> | list | object | ("-" simple_expression) | ("!" simple_expression) | function | ( "(" expression ")" )
+    simple_expression = identifier | _exception | <boolean> | <number> | <string> | <null> | list | object | ("-" simple_expression) | ("!" simple_expression) | function | ( "(" expression ")" )
     """
     print("testing parse_simple_expression...")
 
@@ -97,6 +100,10 @@ def test_parse_simple_expression():
     assert node["tag"] == "identifier"
     assert node["value"] == "x", f"Expected 'x', got {node['value']}"
     assert remaining_tokens[0]["tag"] is None, "Expected end of tokens"
+
+    node, remaining_tokens = parse_simple_expression(tokenize("_exception"))
+    assert node["tag"] == "_exception"
+    assert remaining_tokens[0]["tag"] is None, "Expected end of tokens" 
 
     node, remaining_tokens = parse_simple_expression(tokenize("null"))
     assert node["tag"] == "null"
