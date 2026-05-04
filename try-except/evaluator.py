@@ -200,9 +200,7 @@ def ast_to_string(ast):
 
     assert False, f"Unknown tag [{ast['tag']}] in AST"
 
-
 __builtin_functions = ["head", "tail", "length", "keys", "input"]
-
 
 def evaluate_builtin_function(function_name, args):
     if function_name == "head":
@@ -1309,6 +1307,29 @@ def test_control_flow_scoping_rules():
     except Exception as e:
         assert "'break' statement outside of loop" in str(e)
 
+#added for try-except
+def test_evaluate_try():
+    print("test evaluate try")
+    equals("try {1+1}", {}, 2, {})
+    equals("try { x=1; x+2 }", {}, 3, {"x": 1})
+    equals("try { x=2; y=x*3; y-1 }", {}, 5, {"x": 2, "y": 6})
+    equals("try { x=4; y=x+1 }", {}, 5, {"x": 4, "y": 5})
+
+def test_evaluate_except():
+    print("test evaluate except")
+    equals("try { 1/0 }; except (catch_all_except) { 42 }", {}, 42, {})
+    equals("try { raise 2 }; except (2) { 99 }", {}, 99, {})
+    equals("try { raise 7 }; except (5, 7) { 100 }", {}, 100, {})
+    equals("try { x = 1; raise x + 2 }; except (3) { x = x + 10; x }", {}, 11, {"x": 11})
+
+
+def test_evaluate_raise():
+    print("test evaluate raise")
+    equals("raise 1; except(1) { }", {}, None, {})
+    equals("raise 5; except(1, 5) { 10 }", {}, 10, {})
+    equals("try { raise 1 }; except (1) { 2 }", {}, 2, {})
+    equals("try { x = 2; raise x + 1 }; except (3) { x = x + 5; x }", {}, 7, {"x": 7})
+
 
 if __name__ == "__main__":
     # statements and programs are tested implicitly
@@ -1337,4 +1358,8 @@ if __name__ == "__main__":
     test_scoping()
     test_closures()
     test_control_flow_scoping_rules()
+    test_evaluate_try()
+    test_evaluate_except()
+    test_evaluate_raise()
+
     print("done.")

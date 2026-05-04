@@ -1493,7 +1493,7 @@ def test_parse_statement():
     """
     statement = if_statement | while_statement | function_statement | return_statement | print_statement | exit_statement | import_statement | break_statement | continue_statement | assert_statement | try | raise | except | expression
     """
-    print("testing parse_statement...")
+    print("testing parse_statement")
 
     # if statement
     assert (
@@ -1543,7 +1543,7 @@ def test_parse_try_statement():
     """
     try = "try" "{" statement_list "}"
     """
-    print("testing parse_try_statement...")
+    print("testing parse_try_statement")
 
     ast = parse_try_statement(tokenize("try{print 1}"))[0]
 
@@ -1555,7 +1555,7 @@ def test_parse_raise_statement():
     """
     raise = "raise" arithmetic_expression
     """
-    print("testing parse_raise_statement...")
+    print("testing parse_raise_statement")
 
     ast = parse_raise_statement(tokenize("raise 1"))[0]
 
@@ -1564,11 +1564,58 @@ def test_parse_raise_statement():
         "ID": parse_arithmetic_expression(tokenize("1"))[0]
     }
 
+    ast, tokens = parse_raise_statement(tokenize("raise x + 2; print 3"))
+    assert ast == {
+        "tag": "raise",
+        "ID": parse_arithmetic_expression(tokenize("x + 2"))[0]
+    }
+    assert tokens[0]["tag"] == ";"
+
+    ast = parse_raise_statement(tokenize("raise (1 + 2) * 3"))[0]
+    assert ast == {
+        "tag": "raise",
+        "ID": parse_arithmetic_expression(tokenize("(1 + 2) * 3"))[0]
+    }
+
+    ast, tokens = parse_raise_statement(tokenize("raise x * (y + 2); z = 4"))
+    assert ast == {
+        "tag": "raise",
+        "ID": parse_arithmetic_expression(tokenize("x * (y + 2)"))[0]
+    }
+    assert tokens[0]["tag"] == ";"
+
+    ast, tokens = parse_raise_statement(tokenize("raise -(1 + 2)}"))
+    assert ast == {
+        "tag": "raise",
+        "ID": parse_arithmetic_expression(tokenize("-(1 + 2)"))[0]
+    }
+    assert tokens[0]["tag"] == "}"
+
+
+def test_parse_try_statement_2():
+    """
+    try = "try" "{" statement_list "}"
+    """
+    print("testing advanced parse_try_statement")
+
+    ast = parse_try_statement(tokenize("try{ x = 1; raise x + 2 }"))[0]
+    assert ast == {
+        "tag": "try",
+        "statements": parse_statement_list(tokenize("{x = 1; raise x + 2 }"))[0]
+    }
+
+    ast = parse_try_statement(tokenize("try{ if (x) { raise 3 } print 4 }"))[0]
+    assert ast == {
+        "tag": "try",
+        "statements": parse_statement_list(tokenize("{if (x) { raise 3 } print 4 }"))[0]
+    }
+
+
 def test_parse_except_statement():
     """
     except = "except" "(" (arithmetic_expression { "," arithmetic_expression }) | "catch_all_except" ")" "{" statement_list "}"
     """
-    print("testing parse_except_statement...")
+    print("testing parse_except_statement")
 
     ast = parse_except_statement(tokenize("except(1){print 1}"))[0]
 
@@ -1577,6 +1624,41 @@ def test_parse_except_statement():
         "IDs": [parse_arithmetic_expression(tokenize("1"))[0]],
         "catch_all": False,
         "statements": parse_statement_list(tokenize("{print 1}"))[0]
+    }
+
+def test_parse_except_statement_2():
+    """
+    except = "except" "(" (arithmetic_expression { "," arithmetic_expression }) | "catch_all_except" ")" "{" statement_list "}"
+    """
+    print("testing 2nd parse_except_statement")
+
+    ast = parse_except_statement(
+        tokenize("except(1, x + 2, (y * 3) - 4){print x; print y}")
+    )[0]
+
+    assert ast == {
+        "tag": "except",
+        "IDs": [
+            parse_arithmetic_expression(tokenize("1"))[0],
+            parse_arithmetic_expression(tokenize("x + 2"))[0],
+            parse_arithmetic_expression(tokenize("(y * 3) - 4"))[0],
+        ],
+        "catch_all": False,
+        "statements": parse_statement_list(tokenize("{print x; print y}"))[0],
+    }
+
+    ast = parse_except_statement(
+        tokenize("except(error_code, fallback_code){x = x + 1; print x}")
+    )[0]
+
+    assert ast == {
+        "tag": "except",
+        "IDs": [
+            parse_arithmetic_expression(tokenize("error_code"))[0],
+            parse_arithmetic_expression(tokenize("fallback_code"))[0],
+        ],
+        "catch_all": False,
+        "statements": parse_statement_list(tokenize("{x = x + 1; print x}"))[0],
     }
 
     ast = parse_except_statement(tokenize("except(catch_all_except){print 1}"))[0]
@@ -1748,8 +1830,10 @@ if __name__ == "__main__":
         test_parse_statement,
         test_parse_program,
         test_parse_try_statement,
+        test_parse_try_statement_2,
         test_parse_raise_statement,
-        test_parse_except_statement
+        test_parse_except_statement,
+        test_parse_except_statement_2
     ]
     test_grammar = grammar
 
