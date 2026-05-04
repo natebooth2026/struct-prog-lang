@@ -753,13 +753,18 @@ def evaluate(ast, environment):
             return evaluate(ast["statements"], environment)
         else:
             return None, None
-
-        # If "_exception" in environment
-        return environment["_exception"]
     else:
         return None, None
 
-
+    if ast["tag"] == "_exception":
+        # If "_exception" in environment
+        if "_exception" in environment:
+            return environment["_exception"]
+        
+        return None, None
+    else:
+        return None, None
+        
 def clean(e):
     if type(e) is dict:
         return {
