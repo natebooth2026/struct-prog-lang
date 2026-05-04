@@ -753,6 +753,9 @@ def evaluate(ast, environment):
             return evaluate(ast["statements"], environment)
         else:
             return None, None
+
+        # If "_exception" in environment
+        return environment["_exception"]
     else:
         return None, None
 
@@ -810,6 +813,8 @@ def test_evaluate_try():
     print("test evaluate try")
     equals("try {1+1}", {}, 2, {})
     equals("try { x=1; x+2 }", {}, 3, {"x": 1})
+    equals("x=1; try { x }", {}, 1, {"x": 1}) #test global
+    equals("x=1; try { x=5 };", {}, 5, {"x": 5}) #test modify
 
 def test_evaluate_except():
     print("test evaluate except")
